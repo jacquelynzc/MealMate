@@ -8,9 +8,11 @@ import AddItemForm from "@/components/food/add-item-form";
 import { type InsertFoodItem } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { createWorker } from 'tesseract.js';
 
 export default function Scan() {
   const [isScanning, setIsScanning] = useState(false);
+  const [scannedText, setScannedText] = useState("");
   const { toast } = useToast();
 
   const createMutation = useMutation({
@@ -34,19 +36,43 @@ export default function Scan() {
     },
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsScanning(true);
-    // Simulate receipt scanning
-    setTimeout(() => {
-      setIsScanning(false);
+    setScannedText("");
+
+    try {
+      const worker = await createWorker();
+
+      // Create an object URL for the uploaded file
+      const imageUrl = URL.createObjectURL(file);
+
+      await worker.loadLanguage('eng');
+      await worker.initialize('eng');
+
+      const { data: { text } } = await worker.recognize(imageUrl);
+
+      // Clean up
+      URL.revokeObjectURL(imageUrl);
+      await worker.terminate();
+
+      setScannedText(text);
+
       toast({
         title: "Receipt Scanned",
-        description: "Please add the items manually for now. OCR coming soon!",
+        description: "Text extracted successfully. You can now add items manually.",
       });
-    }, 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to scan receipt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -76,6 +102,14 @@ export default function Scan() {
               {isScanning && (
                 <div className="animate-pulse">
                   <p className="text-sage-600">Scanning receipt...</p>
+                </div>
+              )}
+              {scannedText && (
+                <div className="mt-4 text-left">
+                  <h3 className="font-medium mb-2">Scanned Text:</h3>
+                  <pre className="whitespace-pre-wrap text-sm bg-sage-50 p-4 rounded-lg">
+                    {scannedText}
+                  </pre>
                 </div>
               )}
             </div>

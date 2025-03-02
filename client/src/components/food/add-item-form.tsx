@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
 
 interface AddItemFormProps {
   onSubmit: (data: InsertFoodItem) => void;
@@ -34,12 +35,22 @@ export default function AddItemForm({ onSubmit, isLoading }: AddItemFormProps) {
       quantity: 1,
       unit: "piece",
       notes: "",
+      expirationDate: new Date(),
     },
   });
 
+  const handleSubmit = (data: InsertFoodItem) => {
+    // Ensure the expiration date is properly converted to a Date object
+    const formattedData = {
+      ...data,
+      expirationDate: new Date(data.expirationDate),
+    };
+    onSubmit(formattedData);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -121,7 +132,15 @@ export default function AddItemForm({ onSubmit, isLoading }: AddItemFormProps) {
             <FormItem>
               <FormLabel>Expiration Date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input 
+                  type="date" 
+                  {...field}
+                  value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
+                  onChange={(e) => {
+                    const date = e.target.value ? new Date(e.target.value) : new Date();
+                    field.onChange(date.toISOString());
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -135,7 +154,11 @@ export default function AddItemForm({ onSubmit, isLoading }: AddItemFormProps) {
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea placeholder="Add any additional notes" {...field} />
+                <Textarea 
+                  placeholder="Add any additional notes" 
+                  {...field}
+                  value={field.value || ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
