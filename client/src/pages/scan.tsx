@@ -44,23 +44,17 @@ export default function Scan() {
     setScannedText("");
 
     try {
-      const worker = await createWorker();
-      const imageUrl = URL.createObjectURL(file);
-
-      // Initialize worker
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
-
-      // Set progress update
       toast({
         title: "Processing",
         description: "Scanning receipt... This may take a few moments.",
       });
 
-      // Perform OCR
+      const worker = await createWorker();
+      await worker.reinitialize('eng');
+
+      const imageUrl = URL.createObjectURL(file);
       const { data: { text } } = await worker.recognize(imageUrl);
 
-      // Cleanup
       URL.revokeObjectURL(imageUrl);
       await worker.terminate();
 
