@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScanLine, Upload } from "lucide-react";
+import { ScanLine, Upload, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,16 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { createWorker } from 'tesseract.js';
 
+interface ScannedItem {
+  name: string;
+  quantity?: number;
+  unit?: string;
+}
+
 export default function Scan() {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedText, setScannedText] = useState("");
+  const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const { toast } = useToast();
 
   const createMutation = useMutation({
@@ -36,12 +43,50 @@ export default function Scan() {
     },
   });
 
+  const parseScannedText = (text: string): ScannedItem[] => {
+    // Split text into lines
+    const lines = text.split('\n');
+    const items: ScannedItem[] = [];
+
+    // Common units of measurement
+    const units = ['kg', 'g', 'lb', 'oz', 'piece', 'pcs', 'pack'];
+
+    for (const line of lines) {
+      // Skip empty lines
+      if (!line.trim()) continue;
+
+      // Try to extract quantity and unit
+      const quantityMatch = line.match(/\d+(\.\d+)?/);
+      const unitMatch = units.find(unit => line.toLowerCase().includes(unit));
+
+      // Get the remaining text as the item name, cleaning up any extra spaces
+      let name = line.replace(/\d+(\.\d+)?/, '').trim();
+      if (unitMatch) {
+        name = name.replace(new RegExp(unitMatch, 'gi'), '').trim();
+      }
+
+      // Remove common receipt elements like prices (e.g., $12.99)
+      name = name.replace(/\$\d+\.\d+/, '').trim();
+
+      if (name) {
+        items.push({
+          name: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
+          quantity: quantityMatch ? parseFloat(quantityMatch[0]) : 1,
+          unit: unitMatch || 'piece'
+        });
+      }
+    }
+
+    return items;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsScanning(true);
     setScannedText("");
+    setScannedItems([]);
 
     try {
       toast({
@@ -63,9 +108,12 @@ export default function Scan() {
       }
 
       setScannedText(text);
+      const items = parseScannedText(text);
+      setScannedItems(items);
+
       toast({
         title: "Receipt Scanned",
-        description: "Text extracted successfully. You can now add items manually.",
+        description: `Found ${items.length} potential items. Click "Add to Pantry" for items you want to save.`,
       });
     } catch (error) {
       console.error('OCR Error:', error);
@@ -77,6 +125,20 @@ export default function Scan() {
     } finally {
       setIsScanning(false);
     }
+  };
+
+  const handleAddScannedItem = (item: ScannedItem) => {
+    const oneMonthFromNow = new Date();
+    oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+
+    createMutation.mutate({
+      name: item.name,
+      quantity: item.quantity || 1,
+      unit: item.unit || 'piece',
+      category: 'other', // Default category
+      notes: 'Added from scanned receipt',
+      expirationDate: oneMonthFromNow,
+    });
   };
 
   return (
@@ -108,9 +170,34 @@ export default function Scan() {
                   <p className="text-sage-600">Scanning receipt...</p>
                 </div>
               )}
+              {scannedItems.length > 0 && (
+                <div className="mt-4 text-left">
+                  <h3 className="font-medium mb-2">Detected Items:</h3>
+                  <div className="space-y-2">
+                    {scannedItems.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.quantity} {item.unit}
+                          </p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleAddScannedItem(item)}
+                          disabled={createMutation.isPending}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add to Pantry
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {scannedText && (
                 <div className="mt-4 text-left">
-                  <h3 className="font-medium mb-2">Scanned Text:</h3>
+                  <h3 className="font-medium mb-2">Raw Scanned Text:</h3>
                   <pre className="whitespace-pre-wrap text-sm bg-sage-50 p-4 rounded-lg overflow-auto max-h-96">
                     {scannedText}
                   </pre>
