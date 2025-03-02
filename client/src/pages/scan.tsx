@@ -44,27 +44,26 @@ export default function Scan() {
     setScannedText("");
 
     try {
-      const worker = await createWorker();
+      const worker = createWorker({
+        logger: m => console.log(m)
+      });
 
-      // Create an object URL for the uploaded file
       const imageUrl = URL.createObjectURL(file);
 
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
+      await (await worker).loadLanguage('eng');
+      await (await worker).initialize('eng');
+      const { data: { text } } = await (await worker).recognize(imageUrl);
 
-      const { data: { text } } = await worker.recognize(imageUrl);
-
-      // Clean up
       URL.revokeObjectURL(imageUrl);
-      await worker.terminate();
+      await (await worker).terminate();
 
       setScannedText(text);
-
       toast({
         title: "Receipt Scanned",
         description: "Text extracted successfully. You can now add items manually.",
       });
     } catch (error) {
+      console.error('OCR Error:', error);
       toast({
         title: "Error",
         description: "Failed to scan receipt. Please try again.",
@@ -107,7 +106,7 @@ export default function Scan() {
               {scannedText && (
                 <div className="mt-4 text-left">
                   <h3 className="font-medium mb-2">Scanned Text:</h3>
-                  <pre className="whitespace-pre-wrap text-sm bg-sage-50 p-4 rounded-lg">
+                  <pre className="whitespace-pre-wrap text-sm bg-sage-50 p-4 rounded-lg overflow-auto max-h-96">
                     {scannedText}
                   </pre>
                 </div>

@@ -19,7 +19,7 @@ export const foodItems = pgTable("food_items", {
   quantity: integer("quantity").notNull(),
   unit: text("unit").notNull(),
   expirationDate: timestamp("expiration_date").notNull(),
-  notes: text("notes"),
+  notes: text("notes").default(''),
 });
 
 export const recipes = pgTable("recipes", {
@@ -27,10 +27,19 @@ export const recipes = pgTable("recipes", {
   name: text("name").notNull(),
   ingredients: text("ingredients").array().notNull(),
   instructions: text("instructions").notNull(),
-  imageUrl: text("image_url"),
+  imageUrl: text("image_url").default(''),
 });
 
-export const insertFoodItemSchema = createInsertSchema(foodItems).omit({ id: true });
+// Custom zod schema for date handling
+const dateSchema = z.preprocess((arg) => {
+  if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+  return arg;
+}, z.date());
+
+export const insertFoodItemSchema = createInsertSchema(foodItems, {
+  expirationDate: () => dateSchema,
+}).omit({ id: true });
+
 export const insertRecipeSchema = createInsertSchema(recipes).omit({ id: true });
 
 export type FoodItem = typeof foodItems.$inferSelect;
