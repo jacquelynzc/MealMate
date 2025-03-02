@@ -44,18 +44,29 @@ export default function Scan() {
     setScannedText("");
 
     try {
-      const worker = createWorker({
-        logger: m => console.log(m)
-      });
-
+      const worker = await createWorker();
       const imageUrl = URL.createObjectURL(file);
 
-      await (await worker).loadLanguage('eng');
-      await (await worker).initialize('eng');
-      const { data: { text } } = await (await worker).recognize(imageUrl);
+      // Initialize worker
+      await worker.loadLanguage('eng');
+      await worker.initialize('eng');
 
+      // Set progress update
+      toast({
+        title: "Processing",
+        description: "Scanning receipt... This may take a few moments.",
+      });
+
+      // Perform OCR
+      const { data: { text } } = await worker.recognize(imageUrl);
+
+      // Cleanup
       URL.revokeObjectURL(imageUrl);
-      await (await worker).terminate();
+      await worker.terminate();
+
+      if (!text.trim()) {
+        throw new Error("No text was detected in the image");
+      }
 
       setScannedText(text);
       toast({
@@ -66,7 +77,7 @@ export default function Scan() {
       console.error('OCR Error:', error);
       toast({
         title: "Error",
-        description: "Failed to scan receipt. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to scan receipt. Please try again.",
         variant: "destructive",
       });
     } finally {
