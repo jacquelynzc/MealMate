@@ -37,7 +37,7 @@ export default function Scan() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to add item",
         variant: "destructive",
       });
     },
@@ -131,14 +131,16 @@ export default function Scan() {
     const oneMonthFromNow = new Date();
     oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
 
-    createMutation.mutate({
+    const itemToAdd: InsertFoodItem = {
       name: item.name,
       quantity: item.quantity || 1,
       unit: item.unit || 'piece',
       category: 'other', // Default category
       notes: 'Added from scanned receipt',
       expirationDate: oneMonthFromNow,
-    });
+    };
+
+    createMutation.mutate(itemToAdd);
   };
 
   return (
