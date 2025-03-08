@@ -13,7 +13,7 @@ export default function Sidebar() {
   const [location] = useLocation();
 
   return (
-    <aside className="w-64 bg-sage-50 border-r border-sage-200 p-4">
+    <aside className="w-42 bg-sage-50 border-r border-sage-200 p-4">
       <div className="flex items-center gap-2 mb-8">
         <UtensilsCrossed className="h-6 w-6 text-sage-700" />
         <h1 className="text-xl font-bold text-sage-900">MealMate</h1>

@@ -56,9 +56,33 @@ export default function AddItemForm({ onSubmit, isLoading }: AddItemFormProps) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Item Name</FormLabel>
+              <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter food item name" {...field} />
+                <Input placeholder="Enter item name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="expirationDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Expiration Date</FormLabel>
+              <FormControl>
+                <Input 
+                  type="date" 
+                  {...field}
+                  value={field.value instanceof Date 
+                    ? format(field.value, 'yyyy-MM-dd') 
+                    : format(new Date(field.value), 'yyyy-MM-dd')}
+                  onChange={(e) => {
+                    const date = e.target.value ? new Date(e.target.value) : new Date();
+                    field.onChange(date);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -124,28 +148,6 @@ export default function AddItemForm({ onSubmit, isLoading }: AddItemFormProps) {
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="expirationDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Expiration Date</FormLabel>
-              <FormControl>
-                <Input 
-                  type="date" 
-                  {...field}
-                  value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
-                  onChange={(e) => {
-                    const date = e.target.value ? new Date(e.target.value) : new Date();
-                    field.onChange(date.toISOString());
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}
