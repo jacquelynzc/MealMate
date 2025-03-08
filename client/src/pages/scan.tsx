@@ -131,7 +131,7 @@ export default function Scan() {
       expirationDate: oneMonthFromNow,
     };
 
-    setEditingItem(itemToAdd);
+    setEditingItem(itemToAdd); // ✅ Sets the item for auto-population in the form
   };
 
   return (
@@ -175,7 +175,7 @@ export default function Scan() {
               <DialogTitle>Edit Item Before Adding</DialogTitle>
             </DialogHeader>
             <AddItemForm
-              initialValues={editingItem} // Auto-fills the form
+              initialValues={editingItem} // ✅ Now properly passing the selected item to pre-fill the form
               onSubmit={(data) => {
                 createMutation.mutate(data);
                 setEditingItem(null);
